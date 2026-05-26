@@ -1,7 +1,38 @@
-# C++11/14/17
+# C++11/14/17/20/23
 
 ## Overview
 Many of these descriptions and examples come from various resources (see [Acknowledgements](#acknowledgements) section), summarized in my own words.
+
+C++23 includes the following new language features:
+- [deducing this](#deducing-this)
+- [if consteval](#if-consteval)
+- [multidimensional subscript operator](#multidimensional-subscript-operator)
+- [auto(x) and auto{x}](#autox-and-autox)
+- [[[assume]] attribute](#assume-attribute)
+
+C++23 includes the following new library features:
+- [std::expected](#stdexpected)
+- [std::print](#stdprint)
+- [std::mdspan](#stdmdspan)
+- [std::flat_map/flat_set](#stdflat_mapflat_set)
+- [std::byteswap](#stdbyteswap)
+
+C++20 includes the following new language features:
+- [concepts](#concepts)
+- [designated initializers](#designated-initializers)
+- [templates with auto](#templates-with-auto)
+- [three-way comparison operator (<=>)](#three-way-comparison-operator)
+- [range-based for loop with initializer](#range-based-for-loop-with-initializer)
+- [consteval and constinit](#consteval-and-constinit)
+- [coroutines](#coroutines)
+- [modules](#modules)
+
+C++20 includes the following new library features:
+- [std::ranges](#stdranges)
+- [std::span](#stdspan)
+- [std::format](#stdformat)
+- [std::numbers](#stdnumbers)
+- [std::source_location](#stdsource_location)
 
 C++17 includes the following new language features:
 - [template argument deduction for class templates](#template-argument-deduction-for-class-templates)
@@ -70,6 +101,213 @@ C++11 includes the following new library features:
 - [unordered containers](#unordered-containers)
 - [memory model](#memory-model)
 
+## C++23 Language Features
+
+### Deducing this
+Explicit object parameters allow you to explicitly define the `this` parameter in a member function, which enables deducing the value category of the object it was called on.
+```c++
+struct Y {
+  template <typename Self>
+  void Foo(this Self&& self) {
+    // `self` is the object the function was called on.
+  }
+};
+```
+
+### if consteval
+A new way to check if a function is being evaluated in a constant-evaluated context.
+```c++
+constexpr int Compute(int n) {
+  if consteval {
+    return n * n; // Compile-time version
+  } else {
+    return n + n; // Run-time version
+  }
+}
+```
+
+### Multidimensional subscript operator
+Allows `operator[]` to take multiple arguments.
+```c++
+struct Matrix {
+  double& operator[](std::size_t row, std::size_t col);
+};
+
+Matrix m;
+m[1, 2] = 3.0;
+```
+
+### auto(x) and auto{x}
+Cast an expression to a decayed type, as if passed by value to a function.
+```c++
+void Foo(auto x) {
+  auto y = auto(x); // y is a copy of x, decayed
+}
+```
+
+### [[assume]] attribute
+Provides a hint to the optimizer that a certain condition is true.
+```c++
+void Process(int x) {
+  [[assume(x > 0)]];
+  // Optimizer can assume x is positive.
+}
+```
+
+## C++23 Library Features
+
+### std::expected
+A type that represents either an expected value of type `T` or an unexpected error of type `E`.
+```c++
+std::expected<int, std::string> ParseInt(std::string_view s) {
+  if (s == "42") return 42;
+  return std::unexpected("failed to parse");
+}
+```
+
+### std::print
+A more efficient and safer way to print formatted text to standard output.
+```c++
+std::print("Hello, {}!\n", "world");
+```
+
+### std::mdspan
+A non-owning view that provides multidimensional access to a contiguous sequence of elements.
+```c++
+std::vector<int> data(100);
+std::mdspan view(data.data(), 10, 10);
+view[1, 2] = 42;
+```
+
+### std::flat_map/flat_set
+Container adaptors that provide the interface of a map or set but use underlying sequence containers (like `std::vector`) to store elements in a sorted manner.
+```c++
+std::flat_map<int, std::string> m = {{1, "one"}, {2, "two"}};
+```
+
+### std::byteswap
+A utility to swap the byte order of an integer value.
+```c++
+uint32_t val = 0x12345678;
+uint32_t swapped = std::byteswap(val); // 0x78563412
+```
+
+## C++20 Language Features
+
+### Concepts
+A way to specify requirements on template arguments.
+```c++
+template <typename T>
+concept Hashable = requires(T t) {
+  { std::hash<T>{}(t) } -> std::convertible_to<std::size_t>;
+};
+
+template <Hashable T>
+void Process(T t) { /* ... */ }
+```
+
+### Designated initializers
+Allow initializing members of an aggregate by name.
+```c++
+struct Point {
+  int x;
+  int y;
+};
+
+Point p = {.x = 10, .y = 20};
+```
+
+### Templates with auto
+Using `auto` in template parameter lists.
+```c++
+void Foo(auto x) { /* ... */ } // Equivalent to template <typename T> void Foo(T x)
+```
+
+### Three-way comparison operator
+The "spaceship" operator (`<=>`) allows for consistent and efficient comparisons.
+```c++
+struct Point {
+  int x;
+  int y;
+  auto operator<=>(const Point&) const = default;
+};
+```
+
+### Range-based for loop with initializer
+Allows an initializer in a range-based for loop, similar to `if` and `switch`.
+```c++
+for (auto v = GetVector(); int x : v) {
+  // ...
+}
+```
+
+### consteval and constinit
+`consteval` specifies that a function MUST be evaluated at compile-time. `constinit` ensures that a variable with static or thread storage duration has static initialization.
+```c++
+consteval int Square(int n) { return n * n; }
+constinit int kLimit = 100;
+```
+
+### Coroutines
+Functions that can be suspended and resumed.
+```c++
+Generator<int> GetNumbers() {
+  for (int i = 0; i < 10; ++i) {
+    co_yield i;
+  }
+}
+```
+
+### Modules
+A modern way to organize and share code, replacing header files.
+```c++
+// math.ixx
+export module math;
+export int Add(int a, int b) { return a + b; }
+
+// main.cpp
+import math;
+int main() { return Add(1, 2); }
+```
+
+## C++20 Library Features
+
+### std::ranges
+New algorithms and views for working with ranges of elements.
+```c++
+std::vector<int> v = {3, 1, 4, 1, 5, 9};
+std::ranges::sort(v);
+auto even = v | std::views::filter([](int n) { return n % 2 == 0; });
+```
+
+### std::span
+A non-owning view of a contiguous sequence of elements.
+```c++
+void Process(std::span<int> s) {
+  for (int x : s) { /* ... */ }
+}
+```
+
+### std::format
+Type-safe and extensible string formatting.
+```c++
+std::string s = std::format("The answer is {}.", 42);
+```
+
+### std::numbers
+Mathematical constants (e.g., pi, e).
+```c++
+double area = std::numbers::pi * r * r;
+```
+
+### std::source_location
+A utility to capture information about the source code (file name, line number, etc.).
+```c++
+void Log(std::string_view message, std::source_location location = std::source_location::current()) {
+  std::print("{}:{}: {}\n", location.file_name(), location.line(), message);
+}
+```
+
 ## C++17 Language Features
 
 ### Template argument deduction for class templates
@@ -101,22 +339,22 @@ A fold expression performs a fold of a template parameter pack over a binary ope
 * An expression of the form `(... op e)` or `(e op ...)`, where `op` is a fold-operator and `e` is an unexpanded parameter pack, are called _unary folds_.
 * An expression of the form `(e1 op1 ... op2 e2)`, where `op1` and `op2` are fold-operators, is called a _binary fold_. Either `e1` or `e2` are unexpanded parameter packs, but not both.
 ```c++
-template<typename... Args>
-bool logicalAnd(Args... args) {
-    // Binary folding.
-    return (true && ... && args);
+template <typename... Args>
+bool LogicalAnd(Args... args) {
+  // Binary folding.
+  return (true && ... && args);
 }
 bool b = true;
 bool& b2 = b;
-logicalAnd(b, b2, true); // == true
+LogicalAnd(b, b2, true); // == true
 ```
 ```c++
-template<typename... Args>
-auto sum(Args... args) {
-    // Unary folding.
-    return (... + args);
+template <typename... Args>
+auto Sum(Args... args) {
+  // Unary folding.
+  return (... + args);
 }
-sum(1.0, 2.0f, 3); // == 6.0
+Sum(1.0, 2.0f, 3); // == 6.0
 ```
 
 ### New rules for auto deduction from braced-init-list
@@ -136,19 +374,19 @@ static_assert(identity(123) == 123);
 ```
 ```c++
 constexpr auto add = [] (int x, int y) {
-  auto L = [=] { return x; };
-  auto R = [=] { return y; };
-  return [=] { return L() + R(); };
+  auto l = [=] { return x; };
+  auto r = [=] { return y; };
+  return [=] { return l() + r(); };
 };
 
 static_assert(add(1, 2)() == 3);
 ```
 ```c++
-constexpr int addOne(int n) {
+constexpr int AddOne(int n) {
   return [n] { return n + 1; }();
 }
 
-static_assert(addOne(1) == 2);
+static_assert(AddOne(1) == 2);
 ```
 
 ### Inline variables
@@ -184,11 +422,11 @@ namespace A::B::C {
 A proposal for de-structuring initialization, that would allow writing `auto {x, y, z} = expr;` where the type of `expr` was a tuple-like object, whose elements would be bound to the variables `x`, `y`, and `z` (which this construct declares). _Tuple-like objects_ include `std::tuple`, `std::pair`, `std::array`, and aggregate structures.
 ```c++
 using Coordinate = std::pair<int, int>;
-Coordinate origin() {
+Coordinate Origin() {
   return Coordinate{0, 0};
 }
 
-const auto [ x, y ] = origin();
+const auto [ x, y ] = Origin();
 x; // == 0
 y; // == 0
 ```
@@ -206,14 +444,14 @@ if (std::lock_guard<std::mutex> lk(mx); v.empty()) {
 }
 ```
 ```c++
-Foo gadget(args);
-switch (auto s = gadget.status()) {
-  case OK: gadget.zip(); break;
+Foo Gadget(args);
+switch (auto s = Gadget.status()) {
+  case OK: Gadget.zip(); break;
   case Bad: throw BadFoo(s.message());
 }
 // vs.
-switch (Foo gadget(args); auto s = gadget.status()) {
-  case OK: gadget.zip(); break;
+switch (Foo Gadget(args); auto s = Gadget.status()) {
+  case OK: Gadget.zip(); break;
   case Bad: throw BadFoo(s.message());
 }
 ```
@@ -222,18 +460,18 @@ switch (Foo gadget(args); auto s = gadget.status()) {
 Write code that is instantiated depending on a compile-time condition.
 ```c++
 template <typename T>
-constexpr bool isIntegral() {
+constexpr bool IsIntegral() {
   if constexpr (std::is_integral<T>::value) {
     return true;
   } else {
     return false;
   }
 }
-static_assert(isIntegral<int>() == true);
-static_assert(isIntegral<char>() == true);
-static_assert(isIntegral<double>() == false);
+static_assert(IsIntegral<int>() == true);
+static_assert(IsIntegral<char>() == true);
+static_assert(IsIntegral<double>() == false);
 struct S {};
-static_assert(isIntegral<S>() == false);
+static_assert(IsIntegral<S>() == false);
 ```
 
 ## C++17 Library Features
@@ -252,7 +490,7 @@ std::get<1>(v); // == 12.0
 ### std::optional
 The class template `std::optional` manages an optional contained value, i.e. a value that may or may not be present. A common use case for optional is the return value of a function that may fail.
 ```c++
-std::optional<std::string> create(bool b) {
+std::optional<std::string> Create(bool b) {
   if (b) {
     return "Godzilla";
   } else {
@@ -260,10 +498,10 @@ std::optional<std::string> create(bool b) {
   }
 }
 
-create(false).value_or("empty"); // == "empty"
-create(true).value(); // == "Godzilla"
+Create(false).value_or("empty"); // == "empty"
+Create(true).value(); // == "Godzilla"
 // optional-returning factory functions are usable as conditions of while and if
-if (auto str = create(true)) {
+if (auto str = Create(true)) {
   // ...
 }
 ```
@@ -302,14 +540,14 @@ Invoke a `Callable` object with parameters. Examples of `Callable` objects are `
 ```c++
 template <typename Callable>
 class Proxy {
-    Callable c;
-public:
-    Proxy(Callable c): c(c) {}
-    template <class... Args>
-    decltype(auto) operator()(Args&&... args) {
-        // ...
-        return std::invoke(c, std::forward<Args>(args)...);
-    }
+  Callable c_;
+ public:
+  Proxy(Callable c) : c_(c) {}
+  template <class... Args>
+  decltype(auto) operator()(Args&&... args) {
+    // ...
+    return std::invoke(c_, std::forward<Args>(args)...);
+  }
 };
 auto add = [] (int x, int y) {
   return x + y;
@@ -350,12 +588,12 @@ dst.merge(src);
 
 Inserting elements which outlive the container:
 ```c++
-auto elementFactory() {
+auto ElementFactory() {
   std::set<...> s;
   s.emplace(...);
   return s.extract(s.begin());
 }
-s2.insert(elementFactory());
+s2.insert(ElementFactory());
 ```
 
 Changing the key of a map element:
@@ -389,18 +627,18 @@ std::string foo = identity("foo"); // == "foo"
 Using an `auto` return type in C++14, the compiler will attempt to deduce the type for you. With lambdas, you can now deduce its return type using `auto`, which makes returning a deduced reference or rvalue reference possible.
 ```c++
 // Deduce return type as `int`.
-auto f(int i) {
- return i;
+auto F(int i) {
+  return i;
 }
 ```
 ```c++
 template <typename T>
-auto& f(T& t) {
+auto& F(T& t) {
   return t;
 }
 
 // Returns a reference to a deduced type.
-auto g = [](auto& x) -> auto& { return f(x); };
+auto g = [](auto& x) -> auto& { return F(x); };
 int y = 123;
 int& z = g(y); // reference to `y`
 ```
@@ -423,32 +661,32 @@ decltype(auto) z2 = std::move(z); // int&&
 // Note: Especially useful for generic code!
 
 // Return type is `int`.
-auto f(const int& i) {
- return i;
+auto F(const int& i) {
+  return i;
 }
 
 // Return type is `const int&`.
-decltype(auto) g(const int& i) {
- return i;
+decltype(auto) G(const int& i) {
+  return i;
 }
 
 int x = 123;
-static_assert(std::is_same<const int&, decltype(f(x))>::value == 0);
-static_assert(std::is_same<int, decltype(f(x))>::value == 1);
-static_assert(std::is_same<const int&, decltype(g(x))>::value == 1);
+static_assert(std::is_same<const int&, decltype(F(x))>::value == 0);
+static_assert(std::is_same<int, decltype(F(x))>::value == 1);
+static_assert(std::is_same<const int&, decltype(G(x))>::value == 1);
 ```
 
 ### Relaxing constraints on constexpr functions
 In C++11, `constexpr` function bodies could only contain a very limited set of syntax, including (but not limited to): `typedef`s, `using`s, and a single `return` statement. In C++14, the set of allowable syntax expands greatly to include the most common syntax such as `if` statements, multiple `return`s, loops, etc.
 ```c++
-constexpr int factorial(int n) {
+constexpr int Factorial(int n) {
   if (n <= 1) {
     return 1;
   } else {
-    return n * factorial(n - 1);
+    return n * Factorial(n - 1);
   }
 }
-factorial(5); // == 120
+Factorial(5); // == 120
 ```
 
 ## C++14 Library Features
@@ -511,17 +749,17 @@ See also: `std::move`, `std::forward`.
 The `...` syntax creates a _parameter pack_ or expands one. A template _parameter pack_ is a template parameter that accepts zero or more template arguments (non-types, types, or templates). A template with at least one parameter pack is called a _variadic template_.
 ```c++
 template <typename... T>
-struct arity {
-  constexpr static int value = sizeof...(T);
+struct Arity {
+  constexpr static int kValue = sizeof...(T);
 };
-static_assert(arity<>::value == 0);
-static_assert(arity<char, short, int>::value == 3);
+static_assert(Arity<>::kValue == 0);
+static_assert(Arity<char, short, int>::kValue == 3);
 ```
 
 ### Initializer lists
 A lightweight array-like container of elements created using a "braced list" syntax. For example, `{ 1, 2, 3 }` creates a sequences of integers, that has type `std::initializer_list<int>`. Useful as a replacement to passing a vector of objects to a function.
 ```c++
-int sum(const std::initializer_list<int>& list) {
+int Sum(const std::initializer_list<int>& list) {
   int total = 0;
   for (auto& e : list) {
     total += e;
@@ -531,9 +769,9 @@ int sum(const std::initializer_list<int>& list) {
 }
 
 auto list = { 1, 2, 3 };
-f(list); // == 6
-f({ 1, 2, 3 }); // == 6
-f({}); // == 0
+F(list); // == 6
+F({ 1, 2, 3 }); // == 6
+F({}); // == 0
 ```
 
 ### Static assertions
@@ -571,12 +809,12 @@ auto cit = v.cbegin();
 Functions can also deduce the return type using `auto`. In C++11, a return type must be specified either explicitly, or using `decltype` like so:
 ```c++
 template <typename X, typename Y>
-auto add(X x, Y y) -> decltype(x + y) {
+auto Add(X x, Y y) -> decltype(x + y) {
   return x + y;
 }
-add(1, 2); // == 3
-add(1, 2.0); // == 3.0
-add(1.5, 1.5); // == 3.0
+Add(1, 2); // == 3
+Add(1, 2.0); // == 3.0
+Add(1.5, 1.5); // == 3.0
 ```
 The trailing return type in the above example is the _declared type_ (see section on `decltype`) of the expression `x + y`. For example, if `x` is an integer and `y` is a double, `decltype(x + y)` is a double. Therefore, the above function will deduce the type depending on what type the expression `x + y` yields. Notice that the trailing return type has access to its parameters, and `this` when appropriate.
 
@@ -591,14 +829,14 @@ A `lambda` is an unnamed function object capable of capturing variables in scope
 ```c++
 int x = 1;
 
-auto getX = [=]{ return x; };
-getX(); // == 1
+auto get_x = [=]{ return x; };
+get_x(); // == 1
 
-auto addX = [=](int y) { return x + y; };
-addX(1); // == 2
+auto add_x = [=](int y) { return x + y; };
+add_x(1); // == 2
 
-auto getXRef = [&]() -> int& { return x; };
-getXRef(); // int& to `x`
+auto get_x_ref = [&]() -> int& { return x; };
+get_x_ref(); // int& to `x`
 ```
 
 ### decltype
@@ -615,10 +853,10 @@ decltype((a)) h = x; // `decltype((a))` is int&
 ```
 ```c++
 template <typename X, typename Y>
-auto add(X x, Y y) -> decltype(x + y) {
+auto Add(X x, Y y) -> decltype(x + y) {
   return x + y;
 }
-add(1, 2.0); // `decltype(x + y)` => `decltype(3.0)` => `double`
+Add(1, 2.0); // `decltype(x + y)` => `decltype(3.0)` => `double`
 ```
 
 ### Template aliases
@@ -635,10 +873,10 @@ String s{"foo"};
 ### nullptr
 C++11 introduces a new null pointer type designed to replace C's `NULL` macro. `nullptr` itself is of type `std::nullptr_t` and can be implicitly converted into pointer types, and unlike `NULL`, not convertible to integral types except `bool`.
 ```c++
-void foo(int);
-void foo(char*);
-foo(NULL); // error -- ambiguous
-foo(nullptr); // calls foo(char*)
+void Foo(int);
+void Foo(char*);
+Foo(NULL); // error -- ambiguous
+Foo(nullptr); // calls Foo(char*)
 ```
 
 ### Strongly-typed enums
@@ -654,8 +892,8 @@ Color c = Color::Red;
 ### Attributes
 Attributes provide a universal syntax over `__attribute__(...)`, `__declspec`, etc.
 ```c++
-// `noreturn` attribute indicates `f` doesn't return.
-[[ noreturn ]] void f() {
+// `noreturn` attribute indicates `F` doesn't return.
+[[ noreturn ]] void F() {
   throw "error";
 }
 ```
@@ -663,18 +901,18 @@ Attributes provide a universal syntax over `__attribute__(...)`, `__declspec`, e
 ### constexpr
 Constant expressions are expressions evaluated by the compiler at compile-time. Only non-complex computations can be carried out in a constant expression. Use the `constexpr` specifier to indicate the variable, function, etc. is a constant expression.
 ```c++
-constexpr int square(int x) {
+constexpr int Square(int x) {
   return x * x;
 }
 
-int square2(int x) {
+int Square2(int x) {
   return x * x;
 }
 
-int a = square(2);  // mov DWORD PTR [rbp-4], 4
+int a = Square(2);  // mov DWORD PTR [rbp-4], 4
 
-int b = square2(2); // mov edi, 2
-                    // call square2(int)
+int b = Square2(2); // mov edi, 2
+                    // call Square2(int)
                     // mov DWORD PTR [rbp-8], eax
 ```
 
@@ -688,15 +926,15 @@ Constant expressions with classes:
 ```c++
 struct Complex {
   constexpr Complex(double r, double i) : re(r), im(i) { }
-  constexpr double real() { return re; }
-  constexpr double imag() { return im; }
+  constexpr double Real() { return re; }
+  constexpr double Imag() { return im; }
 
 private:
   double re;
   double im;
 };
 
-constexpr Complex I(0, 1);
+constexpr Complex kI(0, 1);
 ```
 
 ### Delegating constructors
@@ -718,8 +956,8 @@ User-defined literals allow you to extend the language and add your own syntax. 
 Converting Celsius to Fahrenheit:
 ```c++
 // `unsigned long long` parameter required for integer literal.
-long long operator "" _celsius(unsigned long long tempCelsius) {
-  return std::llround(tempCelsius * 1.8 + 32);
+long long operator "" _celsius(unsigned long long temp_celsius) {
+  return std::llround(temp_celsius * 1.8 + 32);
 }
 24_celsius; // == 75
 ```
@@ -738,14 +976,14 @@ int operator "" _int(const char* str, std::size_t) {
 Specifies that a virtual function overrides another virtual function. If the virtual function does not override a parent's virtual function, throws a compiler error.
 ```c++
 struct A {
-  virtual void foo();
-  void bar();
+  virtual void Foo();
+  void Bar();
 };
 
 struct B : A {
-  void foo() override; // correct -- B::foo overrides A::foo
-  void bar() override; // error -- A::bar is not virtual
-  void baz() override; // error -- B::baz does not override A::baz
+  void Foo() override; // correct -- B::Foo overrides A::Foo
+  void Bar() override; // error -- A::Bar is not virtual
+  void Baz() override; // error -- B::Baz does not override A::Baz
 };
 ```
 
@@ -817,20 +1055,20 @@ struct A {
   A(const A& o) : s(o.s) {}
   A(A&& o) : s(std::move(o.s)) {}
   A& operator=(A&& o) {
-   s = std::move(o.s);
-   return *this;
+    s = std::move(o.s);
+    return *this;
   }
 };
 
-A f(A a) {
+A F(A a) {
   return a;
 }
 
-A a1 = f(A{}); // move-constructed from rvalue temporary
+A a1 = F(A{}); // move-constructed from rvalue temporary
 A a2 = std::move(a1); // move-constructed using std::move
 A a3 = A{};
 a2 = std::move(a3); // move-assignment using std::move
-a1 = f(A{}); // move-assignment from rvalue temporary
+a1 = F(A{}); // move-assignment from rvalue temporary
 ```
 
 ## C++11 Library Features
@@ -907,16 +1145,16 @@ static_assert(std::is_same<std::conditional<true, int, double>::type, int>::valu
 C++11 introduces new smart(er) pointers: `std::unique_ptr`, `std::shared_ptr`, `std::weak_ptr`. `std::auto_ptr` now becomes deprecated and then eventually removed in C++17. `std::unique_ptr` is a non-copyable, movable smart pointer that properly manages arrays and STL containers.
 ```c++
 std::unique_ptr<Foo> p1(new Foo);  // `p1` owns `Foo`
-if (p1) p1->bar();
+if (p1) p1->Bar();
 
 {
   std::unique_ptr<Foo> p2(std::move(p1));  // Now `p2` owns `Foo`
-  f(*p2);
+  F(*p2);
 
   p1 = std::move(p2);  // Ownership returns to `p1` -- `p2` gets destroyed
 }
 
-if (p1) p1->bar();
+if (p1) p1->Bar();
 // `Foo` instance is destroyed when `p1` goes out of scope
 ```
 
@@ -937,18 +1175,18 @@ elapsed_seconds.count(); // t number of seconds, represented as a `double`
 Tuples are a fixed-size collection of heterogeneous values. Access the elements of a `std::tuple` by unpacking using `std::tie` (see section), or using `std::get`.
 ```c++
 // `playerProfile` has type `std::tuple<int, std::string, std::string>`.
-auto playerProfile = std::make_tuple(51, "Frans Nielsen", "NYI");
-std::get<0>(playerProfile); // 51
-std::get<1>(playerProfile); // "Frans Nielsen"
-std::get<2>(playerProfile); // "NYI"
+auto player_profile = std::make_tuple(51, "Frans Nielsen", "NYI");
+std::get<0>(player_profile); // 51
+std::get<1>(player_profile); // "Frans Nielsen"
+std::get<2>(player_profile); // "NYI"
 ```
 
 ### std::tie
 Creates a tuple of lvalue references. Useful for unpacking `std::pair` and `std::tuple` objects. Use `std::ignore` as a placeholder for ignored values. In C++17, structured bindings should be used instead.
 ```c++
 // With tuples...
-std::string playerName;
-std::tie(std::ignore, playerName, std::ignore) = std::make_tuple(91, "John Tavares", "NYI");
+std::string player_name;
+std::tie(std::ignore, player_name, std::ignore) = std::make_tuple(91, "John Tavares", "NYI");
 
 // With pairs...
 std::string yes, no;
